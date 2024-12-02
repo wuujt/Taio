@@ -5,14 +5,19 @@
 #include <tuple>
 #include <vector>
 #include <algorithm>
+#include <unordered_set>
+#include <set>
+#include <random>
 
 using namespace std;
 struct Graph {
     int v;
+    int e;
     int** adjacencyMatrix;
 
     Graph(int v) {
         this->v = v;
+        this->e = 0;
         adjacencyMatrix = new int* [v];
         for (int i = 0; i < v; i++) {
             adjacencyMatrix[i] = new int[v]();
@@ -28,6 +33,8 @@ struct Graph {
 
     void print() const {
         std::cout << "Liczba wierzcholkow: " << v << "\n";
+        std::cout << "Liczba krawedzi: " << e << "\n";
+        std::cout << "Rozmiar grafu: " << graphSize() << "\n";
         std::cout << "Macierz sasiedztwa:\n";
         for (int i = 0; i < v; i++) {
             for (int j = 0; j < v; j++) {
@@ -36,6 +43,10 @@ struct Graph {
             std::cout << "\n";
         }
         std::cout << "\n";
+    }
+
+    int graphSize() const {
+        return e + v;
     }
 
     bool isHamiltonianCycle(const vector<int>& permutation, int** adjacencyMatrix) const {
@@ -110,6 +121,7 @@ struct Graph {
         return std::make_tuple(minEdgesToAdd, hamiltonianCycles);
     }
 
+
     std::tuple<int, std::vector<int>> nearestNeighbor(int start) const {
         vector<int> path;
         path.push_back(start);
@@ -143,7 +155,44 @@ struct Graph {
         return std::make_tuple(missingEdges, path);
     }
 
-    std::tuple<int, int> findHamiltonianExtension_approx() const {
+    int estimateUniqueHamiltonianCycles(int startVertex, int iterations, std::set<std::vector<int>>& uniqueHamiltonianCycles, int** adjacencyMatrix) {
+        std::random_device rd;
+        std::mt19937 gen(rd());
+
+        for (int i = 0; i < iterations; ++i) {
+            vector<int> path;
+            vector<bool> visited(v, false);
+            path.push_back(startVertex);
+            visited[startVertex] = true;
+
+            int current = startVertex;
+            for (int j = 1; j < v; ++j) {
+                vector<int> candidates;
+                for (int k = 0; k < v; ++k) {
+                    if (!visited[k] && adjacencyMatrix[current][k] == 1) {
+                        candidates.push_back(k);
+                    }
+                }
+
+                if (candidates.empty()) break;
+
+                uniform_int_distribution<> dist(0, candidates.size() - 1);
+                int next = candidates[dist(gen)];
+
+                path.push_back(next);
+                visited[next] = true;
+                current = next;
+            }
+
+            if (path.size() == v && adjacencyMatrix[current][startVertex] == 1) {
+                uniqueHamiltonianCycles.insert(path);
+            }
+        }
+
+        return uniqueHamiltonianCycles.size();
+    }
+
+    std::tuple<int, int> findHamiltonianExtension_approx() {
         int minMissingEdges = INT_MAX;
         std::vector<int> hamiltonianPath;
 
@@ -156,8 +205,26 @@ struct Graph {
             }
         }
 
-        // TODO: Approximate number of hamiltionian cycles
-        return std::make_tuple(minMissingEdges, 1);
+        int** adjacencyMatrixCopy = new int* [v];
+        for (int i = 0; i < v; i++) {
+            adjacencyMatrixCopy[i] = new int[v];
+            for (int j = 0; j < v; j++) {
+                adjacencyMatrixCopy[i][j] = adjacencyMatrix[i][j];
+            }
+        }
+
+        for (int i = 0; i < v; ++i) {
+            int from = hamiltonianPath[i];
+            int to = hamiltonianPath[(i + 1) % v];
+            adjacencyMatrixCopy[from][to] = 1;
+        }
+
+        std::set<std::vector<int>> uniqueCycles;
+        uniqueCycles.insert(hamiltonianPath);
+
+        int cycles = estimateUniqueHamiltonianCycles(hamiltonianPath.front(), graphSize()*graphSize(), uniqueCycles, adjacencyMatrixCopy);
+
+        return std::make_tuple(minMissingEdges, cycles);
     }
 };
 
@@ -172,22 +239,42 @@ Graph** readGraphsFromFile(const std::string& filename, int& numGraphs) {
     Graph** graphs = new Graph * [numGraphs];
 
     for (int g = 0; g < numGraphs; g++) {
-        int v;
+        int v, e = 0;
         file >> v;
-
 
         graphs[g] = new Graph(v);
 
         for (int i = 0; i < v; i++) {
             for (int j = 0; j < v; j++) {
                 file >> graphs[g]->adjacencyMatrix[i][j];
+                e += graphs[g]->adjacencyMatrix[i][j];
             }
         }
 
+        graphs[g]->e = e;
     }
 
     file.close();
     return graphs;
+}
+
+Graph createRandomGraph(int v, double edgeProbability) {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<> dis(0.0, 1.0);
+    Graph g(v);
+    int e = 0;
+    for (int i = 0; i < v; i++) {
+        for (int j = 0; j < v; j++) {
+            if (i == j) {
+                continue;
+            }
+            g.adjacencyMatrix[i][j] = dis(gen) <= edgeProbability;
+            e += g.adjacencyMatrix[i][j];
+        }
+    }
+    g.e = e;
+    return g;
 }
 
 void deleteGraphs(Graph** graphs, int numGraphs) {
@@ -214,6 +301,15 @@ int main() {
         std::cout << "Algorytm aproksymujacy: minimalne rozszerzenie: " << std::get<0>(b) << ", ilosc cykli hamiltona: " << std::get<1>(b) << std::endl;
     }
 
+    std::cout << "/n";
+
+    Graph g = createRandomGraph(10, 0.7);
+    g.print();
+    auto a = g.findHamiltonianExtension_exact();
+    std::cout << "Algorytm dokladny: minimalne rozszerzenie: " << std::get<0>(a) << ", ilosc cykli hamiltona: " << std::get<1>(a) << std::endl;
+
+    auto b = g.findHamiltonianExtension_approx();
+    std::cout << "Algorytm aproksymujacy: minimalne rozszerzenie: " << std::get<0>(b) << ", ilosc cykli hamiltona: " << std::get<1>(b) << std::endl;
     deleteGraphs(graphs, numGraphs);
 
     return 0;
