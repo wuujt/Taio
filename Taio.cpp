@@ -340,6 +340,7 @@ int handleOptions(int argc, char* argv[]) {
             }
             else {
                 std::cerr << "Unknown function: " << function << std::endl;
+                printUsage();
                 return 1;
             }
         }
