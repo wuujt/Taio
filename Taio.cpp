@@ -82,6 +82,12 @@ struct Graph {
 
 };
 
+//console_helpers
+int handleOptions(int argc, char* argv[]);
+void handleMetric(Graph& g1, Graph& g2, bool approx);
+void handleCycles(Graph& graph, bool approx);
+void handleHamilton(Graph& graph, bool approx);
+
 //distance
 int calculateDistance(Graph& G1, Graph& G2);
 int approximateDistance(Graph& G1, Graph& G2);
@@ -185,6 +191,11 @@ void testFunctions2(int n,
 
 int main(int argc, char* argv[]) {
 
+    if (argc >= 4) {
+        handleOptions(argc, argv);
+        return 0;
+    }
+
     string filename = "dane.txt";
     if (argc > 1) {
         filename = argv[1];
@@ -257,6 +268,151 @@ int main(int argc, char* argv[]) {
 
     return 0;
 }
+
+#pragma region console_helpers
+
+int handleOptions(int argc, char* argv[]) {
+    string filename = argv[1];
+    string function = argv[2];
+    int numGraphs;
+
+    Graph** graphs = readGraphsFromFile(filename, numGraphs);
+
+    try {
+        if (function == "metric") {
+            int index1 = std::stoi(argv[3]);
+            int index2 = std::stoi(argv[4]);
+            Graph graph1 = *graphs[index1];
+            Graph graph2 = *graphs[index2];
+            bool approx = false;
+            if (argc == 6 && string(argv[5]) == "approx") {
+                approx = true;
+                cout << "Approx ";
+            }
+            handleMetric(graph1, graph2, approx);
+        }
+        else {
+            int index = std::stoi(argv[3]);
+            Graph graph = *graphs[index];
+
+            if (function == "cycles") {
+
+                bool approx = false;
+                if (argc == 5 && string(argv[4]) == "approx") {
+                    approx = true;
+                    cout << "Approx ";
+                }
+                handleCycles(graph, approx);
+            }
+            else if (function == "hamilton") {
+                bool approx = false;
+                if (argc == 5 && string(argv[4]) == "approx") {
+                    approx = true;
+                    cout << "Approx ";
+                }
+                handleHamilton(graph, approx);
+            }
+            else {
+                std::cerr << "Unknown function: " << function << std::endl;
+                return 1;
+            }
+        }
+
+    }
+    catch (const std::exception& e) {
+        cerr << "Error: " << e.what() << endl;
+        cerr << "Usage:" << endl;
+        cerr << "./app.exe [filename] metric [graph_index1] [graph_index2] [approx]" << endl;
+        cerr << "./app.exe [filename] [function] [graph_index] [approx]" << endl;
+        return 1;
+    }
+
+    return 1;
+}
+
+void handleMetric(Graph& g1, Graph& g2, bool approx) {
+    cout << "Distance between graphs: " << endl;
+    g1.print();
+    cout << "and: " << endl;
+    g2.print();
+    auto start = std::chrono::high_resolution_clock::now();
+
+    int distance = approx ? approximateDistance(g1, g2) : calculateDistance(g1, g2);
+
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end - start;
+    double time = elapsed.count();
+    cout << "Execution time: " << time << " seconds" << endl;
+    cout << "Distance: " << distance << endl;
+}
+
+void handleCycles(Graph& graph, bool approx) {
+    cout << "Max cycles:" << endl;
+
+    auto start = std::chrono::high_resolution_clock::now();
+    pair<int, pair<int, vector<vector<int>>>> approxMaxCycles;
+    pair<int, pair<int, set<vector<int>>>> maxCycles;
+    if (approx) {
+        approxMaxCycles = findLongestCyclesApproximation(graph);
+    }
+    else {
+        maxCycles = findMaxCycle(graph);
+    }
+
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end - start;
+    double time = elapsed.count();
+    cout << "Execution time: " << time << " seconds" << endl;
+
+    if (approx) {
+        int cycleLength = approxMaxCycles.first;
+        int numberOfMaxCycles = approxMaxCycles.second.first;
+        vector<vector<int>> cycles = approxMaxCycles.second.second;
+
+        cout << "Length of longest cycle " << cycleLength << endl;
+        cout << "Number of cycles: " << numberOfMaxCycles << endl;
+        cout << "Cycles: " << endl;
+        for (const auto& cycle : cycles) {
+            for (int node : cycle) {
+                cout << node << " ";
+            }
+            cout << endl;
+        }
+        cout << endl;
+    }
+    else {
+        int cycleLength = maxCycles.first;
+        int numberOfMaxCycles = maxCycles.second.first;
+        set<vector<int>> cycles = maxCycles.second.second;
+
+        cout << "Length of longest cycle " << cycleLength << endl;
+        cout << "Number of cycles: " << numberOfMaxCycles << endl;
+        cout << "Cycles: " << endl;
+        for (const auto& cycle : cycles) {
+            for (int node : cycle) {
+                cout << node << " ";
+            }
+            cout << endl;
+        }
+        cout << endl;
+    }
+}
+
+void handleHamilton(Graph& graph, bool approx) {
+
+    cout << "Hamiltonian extension:" << endl;
+    auto start = std::chrono::high_resolution_clock::now();
+    auto hamiltonianExtension = approx ? findHamiltonianExtension_approx(graph) : findHamiltonianExtension_exact(graph);
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end - start;
+    double time = elapsed.count();
+    cout << "Execution time: " << time << " seconds" << endl;
+    cout << "Numer of edges to add " << get<0>(hamiltonianExtension) << endl;
+    cout << "Number of hamiltonian cycles " << get<1>(hamiltonianExtension) << endl;
+}
+
+#pragma endregion
+
 #pragma region distance
 int calculateDistance(Graph& G1, Graph& G2) {
     int n1 = G1.v;
