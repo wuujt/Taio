@@ -214,6 +214,8 @@ int main(int argc, char* argv[]) {
     for (int i = 2; i < 20; i = i++)
         testFunctions(i, calculateDistance, approximateDistance);
 
+    runHamiltonTests();
+
     Graph** graphs = readGraphsFromFile(filename, numGraphs);
 
     cout << "Wczytano " << numGraphs << " grafow:" << endl;
@@ -222,7 +224,7 @@ int main(int argc, char* argv[]) {
     }
     if (numGraphs > 1)
     {
-        cout << "Dinstance: " << calculateDistance(*graphs[0], *graphs[1]) << endl;
+        cout << "Distance: " << calculateDistance(*graphs[0], *graphs[1]) << endl;
         cout << "Approx distance: " << approximateDistance(*graphs[0], *graphs[1]) << endl;
     }
     cout << endl;
@@ -270,7 +272,7 @@ int main(int argc, char* argv[]) {
     cout << "Numer of edges to add " << get<0>(hamiltonianExtension_approx) << endl;
     cout << "Number of hamiltonian cycles " << get<1>(hamiltonianExtension_approx) << endl;
 
-
+    deleteGraphs(graphs, numGraphs);
 
     return 0;
 }
@@ -279,8 +281,9 @@ void printUsage() {
     cerr << "Usage:" << endl;
     cerr << "./Taio.exe [filename] distance [graph_index1] [graph_index2] [approx]" << endl;
     cerr << "./Taio.exe [filename] [function] [graph_index] [approx]" << endl;
-    cerr << "function: cycles or hamiltion" << endl;
-    cerr << "approx: either omitted for exact function or approx for approximate function" << endl;
+    cerr << "Options for [function]: cycles or hamilton" << endl;
+    cerr << "[approx]: Leave empty for exact function or use 'approx' for an approximate version" << endl;
+    cerr << endl;
     cerr << "Examples: " << endl;
     cerr << "./Taio.exe dane.txt cycles 1" << endl;
     cerr << "./Taio.exe dane.txt hamilton 2 approx" << endl;
@@ -341,6 +344,7 @@ int handleOptions(int argc, char* argv[]) {
             else {
                 std::cerr << "Unknown function: " << function << std::endl;
                 printUsage();
+                deleteGraphs(graphs, numGraphs);
                 return 1;
             }
         }
@@ -349,8 +353,11 @@ int handleOptions(int argc, char* argv[]) {
     catch (const std::exception& e) {
         cerr << "Error: " << e.what() << endl;
         printUsage();
+        deleteGraphs(graphs, numGraphs);
         return 1;
     }
+
+    deleteGraphs(graphs, numGraphs);
 
     return 0;
 }
