@@ -122,6 +122,8 @@ void deleteGraphs(Graph** graphs, int numGraphs);
 vector<int> normalizeCycle(const vector<int>& cycle);
 Graph extendGraph(Graph& G, int newSize);
 void printCycles(const vector<vector<int>>& cycles);
+void runHamiltonTests();
+void printUsage();
 
 
 Graph generateRandomGraph(int n) {
@@ -191,6 +193,10 @@ void testFunctions2(int n,
 
 int main(int argc, char* argv[]) {
 
+    if (argc > 2 && argc < 4) {
+        printUsage();
+        return 1;
+    }
     if (argc >= 4) {
         handleOptions(argc, argv);
         return 0;
@@ -269,6 +275,26 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 
+void printUsage() {
+    cerr << "Usage:" << endl;
+    cerr << "./Taio.exe [filename] distance [graph_index1] [graph_index2] [approx]" << endl;
+    cerr << "./Taio.exe [filename] [function] [graph_index] [approx]" << endl;
+    cerr << "function: cycles or hamiltion" << endl;
+    cerr << "approx: either omitted for exact function or approx for approximate function" << endl;
+    cerr << "Examples: " << endl;
+    cerr << "./Taio.exe dane.txt cycles 1" << endl;
+    cerr << "./Taio.exe dane.txt hamilton 2 approx" << endl;
+}
+
+void runHamiltonTests() {
+    for (int i = 2; i < 10; i = i++)
+        testFunctions2(i, findHamiltonianExtension_exact, findHamiltonianExtension_approx);
+
+    for (int i = 2; i < 100; i = i++)
+        testFunctions2(i, findHamiltonianExtension_approx, findHamiltonianExtension_approx);
+}
+
+
 #pragma region console_helpers
 
 int handleOptions(int argc, char* argv[]) {
@@ -279,7 +305,7 @@ int handleOptions(int argc, char* argv[]) {
     Graph** graphs = readGraphsFromFile(filename, numGraphs);
 
     try {
-        if (function == "metric") {
+        if (function == "distance") {
             int index1 = std::stoi(argv[3]);
             int index2 = std::stoi(argv[4]);
             Graph graph1 = *graphs[index1];
@@ -321,24 +347,21 @@ int handleOptions(int argc, char* argv[]) {
     }
     catch (const std::exception& e) {
         cerr << "Error: " << e.what() << endl;
-        cerr << "Usage:" << endl;
-        cerr << "./app.exe [filename] metric [graph_index1] [graph_index2] [approx]" << endl;
-        cerr << "./app.exe [filename] [function] [graph_index] [approx]" << endl;
+        printUsage();
         return 1;
     }
 
-    return 1;
+    return 0;
 }
 
 void handleMetric(Graph& g1, Graph& g2, bool approx) {
     cout << "Distance between graphs: " << endl;
+    cout << "First graph:" << endl;
     g1.print();
-    cout << "and: " << endl;
+    cout << "Second graph:" << endl;
     g2.print();
     auto start = std::chrono::high_resolution_clock::now();
-
     int distance = approx ? approximateDistance(g1, g2) : calculateDistance(g1, g2);
-
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = end - start;
     double time = elapsed.count();
@@ -348,7 +371,8 @@ void handleMetric(Graph& g1, Graph& g2, bool approx) {
 
 void handleCycles(Graph& graph, bool approx) {
     cout << "Max cycles:" << endl;
-
+    cout << "Graph:" << endl;
+    graph.print();
     auto start = std::chrono::high_resolution_clock::now();
     pair<int, pair<int, vector<vector<int>>>> approxMaxCycles;
     pair<int, pair<int, set<vector<int>>>> maxCycles;
@@ -401,6 +425,8 @@ void handleCycles(Graph& graph, bool approx) {
 void handleHamilton(Graph& graph, bool approx) {
 
     cout << "Hamiltonian extension:" << endl;
+    cout << "Graph:" << endl;
+    graph.print();
     auto start = std::chrono::high_resolution_clock::now();
     auto hamiltonianExtension = approx ? findHamiltonianExtension_approx(graph) : findHamiltonianExtension_exact(graph);
     auto end = std::chrono::high_resolution_clock::now();
@@ -517,7 +543,7 @@ pair<int, pair<int, set<vector<int>>>> findMaxCycle(Graph& graph) {
             maxCycleCount, currentCycle, allCycles);
     }
 
-    return { allCycles.size()>0?maxCycleLength + 1 :0, {allCycles.size(), allCycles} };
+    return { allCycles.size() > 0 ? maxCycleLength + 1 : 0, {allCycles.size(), allCycles} };
 }
 
 void backtrackingMaxCycle(Graph& graph, int currentVertex, int startVertex,
@@ -587,7 +613,7 @@ pair<int, pair<int, vector<vector<int>>>> findLongestCyclesApproximation(const G
         }
     }
 
-    return { longestLength-1,{longestCycles.size(),longestCycles} };
+    return { longestLength - 1,{longestCycles.size(),longestCycles} };
 }
 vector<pair<int, int>> getSpanningForest(const Graph& graph) {
     vector<bool> visited(graph.v, false);
@@ -839,7 +865,7 @@ tuple<int, int> findHamiltonianExtension_approx(Graph& g) {
     set<vector<int>> uniqueCycles;
     uniqueCycles.insert(hamiltonianPath);
 
-    int cycles = estimateUniqueHamiltonianCycles(hamiltonianPath.front(), g.v * g.v, uniqueCycles, extendedGraph);
+    int cycles = estimateUniqueHamiltonianCycles(hamiltonianPath.front(), g.v, uniqueCycles, extendedGraph);
 
     return std::make_tuple(minMissingEdges, cycles);
 }
