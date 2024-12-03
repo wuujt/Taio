@@ -208,13 +208,13 @@ int main(int argc, char* argv[]) {
     }
     int numGraphs;
 
-    for (int i = 2; i < 20; i = i++)
-        testFunctions2(i, findMaxCycle, findLongestCyclesApproximation);
+    //for (int i = 2; i < 20; i = i++)
+      //  testFunctions2(i, findMaxCycle, findLongestCyclesApproximation);
 
-    for (int i = 2; i < 20; i = i++)
-        testFunctions(i, calculateDistance, approximateDistance);
+    //for (int i = 2; i < 20; i = i++)
+     //   testFunctions(i, calculateDistance, approximateDistance);
 
-    runHamiltonTests();
+   // runHamiltonTests();
 
     Graph** graphs = readGraphsFromFile(filename, numGraphs);
 
