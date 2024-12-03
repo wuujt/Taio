@@ -122,8 +122,8 @@ void deleteGraphs(Graph** graphs, int numGraphs);
 vector<int> normalizeCycle(const vector<int>& cycle);
 Graph extendGraph(Graph& G, int newSize);
 void printCycles(const vector<vector<int>>& cycles);
-void runHamiltonTests();
 void printUsage();
+void runTests();
 
 
 Graph generateRandomGraph(int n) {
@@ -191,76 +191,102 @@ void testFunctions2(int n,
 
 }
 
+template <typename Func1>
+void testOneFunction(int n,
+    Func1 function1)
+{
+    Graph graph1 = generateRandomGraph(n);
+    cout << "Graph size: " << n << endl;
+    double time1 = measureExecutionTime2(function1, graph1);
+    cout << "Execution time for function: " << time1 << " seconds" << endl;
+    cout << endl;
+}
+
+void testOneFunctionBetween2Graphs(int n, int (*function1)(Graph&, Graph&))
+{
+    Graph graph1 = generateRandomGraph(n);
+    Graph graph2 = generateRandomGraph(n);
+    cout << "Graph size: " << n << endl;
+    double time1 = measureExecutionTime(function1, graph1, graph2);
+    cout << "Execution time for function: " << time1 << " seconds" << endl;
+    cout << endl;
+}
+
 int main(int argc, char* argv[]) {
 
-    if (argc > 2 && argc < 4) {
-        printUsage();
-        return 1;
+
+    if (argc == 2 && string(argv[1]) == "test") {
+        runTests();
+        return 0;
     }
     if (argc >= 4) {
         handleOptions(argc, argv);
         return 0;
     }
-
-    string filename = "dane.txt";
-    if (argc > 1) {
-        filename = argv[1];
+    else {
+        printUsage();
+        return 1;
     }
     int numGraphs;
 
-    //for (int i = 2; i < 20; i = i++)
-      //  testFunctions2(i, findMaxCycle, findLongestCyclesApproximation);
+    // string filename = "dane.txt";
+    // if (argc > 1) {
+    //     filename = argv[1];
+    // }
+    // int numGraphs;
 
-    //for (int i = 2; i < 20; i = i++)
-     //   testFunctions(i, calculateDistance, approximateDistance);
+    // //for (int i = 2; i < 20; i = i++)
+    //   //  testFunctions2(i, findMaxCycle, findLongestCyclesApproximation);
 
-   // runHamiltonTests();
+    // //for (int i = 2; i < 20; i = i++)
+    //  //   testFunctions(i, calculateDistance, approximateDistance);
 
-    Graph** graphs = readGraphsFromFile(filename, numGraphs);
+    //// runHamiltonTests();
 
-    cout << "Wczytano " << numGraphs << " grafow:" << endl;
-    for (int i = 0; i < numGraphs; i++) {
-        graphs[i]->print();
-    }
-    if (numGraphs > 1)
-    {
-        cout << "Distance: " << calculateDistance(*graphs[0], *graphs[1]) << endl;
-        cout << "Approx distance: " << approximateDistance(*graphs[0], *graphs[1]) << endl;
-    }
-    cout << endl;
-    pair<int, pair<int, vector<vector<int>>>> approxMaxCycles = findLongestCyclesApproximation(*graphs[0]);
-    pair<int, pair<int, set<vector<int>>>> maxCycles = findMaxCycle(*graphs[0]);
+    // Graph** graphs = readGraphsFromFile(filename, numGraphs);
 
-    int cycleLength = maxCycles.first;
-    int numberOfMaxCycles = maxCycles.second.first;
-    set<vector<int>> cycles = maxCycles.second.second;
+    // cout << "Wczytano " << numGraphs << " grafow:" << endl;
+    // for (int i = 0; i < numGraphs; i++) {
+    //     graphs[i]->print();
+    // }
+    // if (numGraphs > 1)
+    // {
+    //     cout << "Distance: " << calculateDistance(*graphs[0], *graphs[1]) << endl;
+    //     cout << "Approx distance: " << approximateDistance(*graphs[0], *graphs[1]) << endl;
+    // }
+    // cout << endl;
+    // pair<int, pair<int, vector<vector<int>>>> approxMaxCycles = findLongestCyclesApproximation(*graphs[0]);
+    // pair<int, pair<int, set<vector<int>>>> maxCycles = findMaxCycle(*graphs[0]);
 
-    cout << "Max cycle:" << endl;
-    cout << "Length of longest cycle " << cycleLength << endl;
-    cout << "Number of cycles: " << numberOfMaxCycles << endl;
-    cout << "Cycles: " << endl;
-    for (const auto& cycle : cycles) {
-        for (int node : cycle) {
-            cout << node << " ";
-        }
-        cout << endl;
-    }
-    cout << endl;
-    cycleLength = approxMaxCycles.first;
-    numberOfMaxCycles = approxMaxCycles.second.first;
-    vector<vector<int>> cycles2 = approxMaxCycles.second.second;
+    // int cycleLength = maxCycles.first;
+    // int numberOfMaxCycles = maxCycles.second.first;
+    // set<vector<int>> cycles = maxCycles.second.second;
 
-    cout << "Approx max cycle:" << endl;
-    cout << "Length of longest cycle " << cycleLength << endl;
-    cout << "Number of cycles: " << numberOfMaxCycles << endl;
-    cout << "Cycles:" << endl;
-    for (const auto& cycle : cycles2) {
-        for (int node : cycle) {
-            cout << node << " ";
-        }
-        cout << endl;
-    }
+    // cout << "Max cycle:" << endl;
+    // cout << "Length of longest cycle " << cycleLength << endl;
+    // cout << "Number of cycles: " << numberOfMaxCycles << endl;
+    // cout << "Cycles: " << endl;
+    // for (const auto& cycle : cycles) {
+    //     for (int node : cycle) {
+    //         cout << node << " ";
+    //     }
+    //     cout << endl;
+    // }
+    // cout << endl;
+    // cycleLength = approxMaxCycles.first;
+    // numberOfMaxCycles = approxMaxCycles.second.first;
+    // vector<vector<int>> cycles2 = approxMaxCycles.second.second;
 
+    // cout << "Approx max cycle:" << endl;
+    // cout << "Length of longest cycle " << cycleLength << endl;
+    // cout << "Number of cycles: " << numberOfMaxCycles << endl;
+    // cout << "Cycles:" << endl;
+    // for (const auto& cycle : cycles2) {
+    //     for (int node : cycle) {
+    //         cout << node << " ";
+    //     }
+    //     cout << endl;
+    // }
 
     auto hamiltonianExtension = findHamiltonianExtension_exact(*graphs[0]);
     auto hamiltonianExtension_approx = findHamiltonianExtension_approx(*graphs[0]);
@@ -268,36 +294,56 @@ int main(int argc, char* argv[]) {
     cout << "Numer of edges to add " << get<0>(hamiltonianExtension) << endl;
     cout << "Number of hamiltonian cycles " << get<1>(hamiltonianExtension) << endl;
 
-    cout << "Hamiltonian extension approx:" << endl;
-    cout << "Numer of edges to add " << get<0>(hamiltonianExtension_approx) << endl;
-    cout << "Number of hamiltonian cycles " << get<1>(hamiltonianExtension_approx) << endl;
+    // auto hamiltonianExtension = findHamiltonianExtension_exact(*graphs[0]);
+    // auto hamiltonianExtension_approx = findHamiltonianExtension_approx(*graphs[0]);
+    // cout << "Hamiltonian extension:" << endl;
+    // cout << "Numer of edges to add " << get<0>(hamiltonianExtension) << endl;
+    // cout << "Number of hamiltonian cycles " << get<1>(hamiltonianExtension) << endl;
 
-    deleteGraphs(graphs, numGraphs);
+    // cout << "Hamiltonian extension approx:" << endl;
+    // cout << "Numer of edges to add " << get<0>(hamiltonianExtension_approx) << endl;
+    // cout << "Number of hamiltonian cycles " << get<1>(hamiltonianExtension_approx) << endl;
 
-    return 0;
+    // deleteGraphs(graphs, numGraphs);
+
+    //return 0;
 }
 
 void printUsage() {
-    cerr << "Usage:" << endl;
-    cerr << "./Taio.exe [filename] distance [graph_index1] [graph_index2] [approx]" << endl;
-    cerr << "./Taio.exe [filename] [function] [graph_index] [approx]" << endl;
-    cerr << "Options for [function]: cycles or hamilton" << endl;
-    cerr << "[approx]: Leave empty for exact function or use 'approx' for an approximate version" << endl;
-    cerr << endl;
-    cerr << "Examples: " << endl;
-    cerr << "./Taio.exe dane.txt cycles 1" << endl;
-    cerr << "./Taio.exe dane.txt hamilton 2 approx" << endl;
+    cout << "Usage:" << endl;
+    cout << "./Taio.exe test" << endl;
+    cout << "to run performance tests on random graphs or:" << endl;
+    cout << "./Taio.exe [filename] distance [graph_index1] [graph_index2] [approx]" << endl;
+    cout << "./Taio.exe [filename] [function] [graph_index] [approx]" << endl;
+    cout << "Options for [function]: cycles or hamilton" << endl;
+    cout << "[approx]: Leave empty for exact function or use 'approx' for an approximate version" << endl;
+    cout << "Examples: " << endl;
+    cout << "./Taio.exe dane.txt cycles 1" << endl;
+    cout << "./Taio.exe dane.txt hamilton 2 approx" << endl;
 }
 
-void runHamiltonTests() {
+void runTests() {
+    cout << "Running random tests:" << endl;
+    cout << endl << "Running tests for finding max cycle: function 1 is exact, function 2 is approximation" << endl;
+    for (int i = 2; i < 10; i = i++)
+        testFunctions2(i, findMaxCycle, findLongestCyclesApproximation);
+    cout << endl << "Running tests for finding distance: function 1 is exact, function 2 is approximation" << endl;
+    for (int i = 2; i < 10; i = i++)
+        testFunctions(i, calculateDistance, approximateDistance);
+    cout << endl << "Running tests for finding hamilton extension: function 1 is exact, function 2 is approximation" << endl;
     for (int i = 2; i < 10; i = i++)
         testFunctions2(i, findHamiltonianExtension_exact, findHamiltonianExtension_approx);
+    cout << endl << "Running tests for approximating finding max cycles:" << endl;
+    for (int i = 4; i < 40; i += 4)
+        testOneFunction(i, findLongestCyclesApproximation);
+    cout << endl << "Running tests for approximating finding distance:" << endl;
+    for (int i = 4; i < 40; i += 4)
+        testOneFunctionBetween2Graphs(i, approximateDistance);
+    cout << endl << "Running tests for approximating finding hamiltonian extension:" << endl;
+    for (int i = 4; i < 40; i += 4)
+        testOneFunction(i, findHamiltonianExtension_approx);
 
-    for (int i = 2; i < 100; i = i++)
-        testFunctions2(i, findHamiltonianExtension_approx, findHamiltonianExtension_approx);
 }
-
-
 #pragma region console_helpers
 
 int handleOptions(int argc, char* argv[]) {
