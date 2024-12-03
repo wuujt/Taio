@@ -517,7 +517,7 @@ pair<int, pair<int, set<vector<int>>>> findMaxCycle(Graph& graph) {
             maxCycleCount, currentCycle, allCycles);
     }
 
-    return { maxCycleLength + 2 , {allCycles.size(), allCycles} };
+    return { allCycles.size()>0?maxCycleLength + 1 :0, {allCycles.size(), allCycles} };
 }
 
 void backtrackingMaxCycle(Graph& graph, int currentVertex, int startVertex,
@@ -570,12 +570,14 @@ pair<int, pair<int, vector<vector<int>>>> findLongestCyclesApproximation(const G
 
     for (const auto& edge : extraEdges) {
         int u = edge.first, v = edge.second;
-        vector<int> path = findPath(u, v, spanningForest, graph.v);
 
-        path.push_back(u);
+        vector<int> path = findPath(v, u, spanningForest, graph.v);
 
-        cycles.push_back(path);
-        longestLength = max(longestLength, (int)path.size());
+        if (!path.empty()) {
+            path.push_back(v);
+            cycles.push_back(path);
+            longestLength = max(longestLength, (int)path.size());
+        }
     }
 
     vector<vector<int>> longestCycles;
@@ -585,7 +587,7 @@ pair<int, pair<int, vector<vector<int>>>> findLongestCyclesApproximation(const G
         }
     }
 
-    return { longestLength,{longestCycles.size(),longestCycles} };
+    return { longestLength-1,{longestCycles.size(),longestCycles} };
 }
 vector<pair<int, int>> getSpanningForest(const Graph& graph) {
     vector<bool> visited(graph.v, false);
@@ -603,13 +605,12 @@ vector<pair<int, int>> getExtraEdges(const Graph& graph, const vector<pair<int, 
     set<pair<int, int>> forestEdges;
     for (const auto& edge : spanningForest) {
         forestEdges.insert(edge);
-        forestEdges.insert({ edge.second, edge.first });
     }
 
     vector<pair<int, int>> extraEdges;
 
     for (int i = 0; i < graph.v; i++) {
-        for (int j = i + 1; j < graph.v; j++) {
+        for (int j = 0; j < graph.v; j++) {
             if (graph.adjacencyMatrix[i][j] == 1) {
                 if (forestEdges.find({ i, j }) == forestEdges.end()) {
                     extraEdges.push_back({ i, j });
@@ -637,7 +638,6 @@ vector<int> findPath(int start, int end, const vector<pair<int, int>>& spanningF
     vector<vector<int>> treeAdj(vertices);
     for (const auto& edge : spanningForest) {
         treeAdj[edge.first].push_back(edge.second);
-        treeAdj[edge.second].push_back(edge.first);
     }
 
     vector<int> parent(vertices, -1);
