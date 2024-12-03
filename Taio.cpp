@@ -480,7 +480,7 @@ void handleHamilton(Graph& graph, bool approx) {
     double time = elapsed.count();
     cout << "Execution time: " << time << " seconds" << endl;
     cout << "Edges to add: " << endl;
-    auto extension = get<3>(hamiltonianExtension);
+    auto& extension = get<3>(hamiltonianExtension);
     for (const auto& row : extension) {
         for (const auto& value : row) {
             cout << value << " ";
@@ -490,7 +490,7 @@ void handleHamilton(Graph& graph, bool approx) {
     cout << "Numer of edges to add: " << get<0>(hamiltonianExtension) << endl;
     cout << "Number of hamiltonian cycles: " << get<1>(hamiltonianExtension) << endl;
     cout << "List of hamiltonian cycles: " << endl;
-    auto vec = get<2>(hamiltonianExtension);
+    auto& vec = get<2>(hamiltonianExtension);
     for (const auto& cycle : vec) {
         for (int i = 0; i < cycle.size(); i++) {
             cout << cycle[i] << " ";
@@ -817,7 +817,7 @@ tuple<int, int, set<vector<int>>, vector<vector<int>>> findHamiltonianExtension_
         int from = bestPermutation[i];
         int to = bestPermutation[(i + 1) % extendedGraph.v];
         extendedGraph.adjacencyMatrix[from][to] = 1;
-        if (g.adjacencyMatrix[from, to] == 0) {
+        if (g.adjacencyMatrix[from][to] == 0) {
             minimumExtension[from][to] = 1;
     }
     }
@@ -935,7 +935,7 @@ tuple<int, int, set<vector<int>>, vector<vector<int>>> findHamiltonianExtension_
         int from = hamiltonianPath[i];
         int to = hamiltonianPath[(i + 1) % extendedGraph.v];
         extendedGraph.adjacencyMatrix[from][to] = 1;
-        if (g.adjacencyMatrix[from, to] == 0) {
+        if (g.adjacencyMatrix[from][to] == 0) {
             minimumExtension[from][to] = 1;
         }
     }
