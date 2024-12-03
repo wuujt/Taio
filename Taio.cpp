@@ -12,6 +12,12 @@
 #include <unordered_set>
 #include <chrono>
 #include <cstdlib>
+#include <tuple>
+#include <vector>
+#include <algorithm>
+#include <unordered_set>
+#include <set>
+#include <random>
 
 using namespace std;
 
@@ -38,6 +44,16 @@ struct Graph {
         adjacencyMatrix[u][v] = 1;
     }
 
+    int calculateEdges() {
+        int e = 0;
+        for (int i = 0; i < v; i++) {
+            for (int j = 0; j < v; j++) {
+                e += adjacencyMatrix[i][j];
+            }
+        }
+        return e;
+    }
+
     vector<int> calculateDegrees() {
         vector<int> degrees(v, 0);
         for (int i = 0; i < v; i++) {
@@ -60,8 +76,17 @@ struct Graph {
         cout << endl;
     }
 
+    int graphSize() {
+        return calculateEdges() + v;
+    }
 
 };
+
+//console_helpers
+int handleOptions(int argc, char* argv[]);
+void handleMetric(Graph& g1, Graph& g2, bool approx);
+void handleCycles(Graph& graph, bool approx);
+void handleHamilton(Graph& graph, bool approx);
 
 //distance
 int calculateDistance(Graph& G1, Graph& G2);
@@ -81,6 +106,15 @@ vector<pair<int, int>> getExtraEdges(const Graph& graph, const vector<pair<int, 
 void dfs(int node, const Graph& graph, vector<bool>& visited, vector<pair<int, int>>& spanningForest);
 vector<int> findPath(int start, int end, const vector<pair<int, int>>& spanningForest, int vertices);
 
+//hamiltonian_extension
+bool isHamiltonianCycle(const vector<int>& permutation, Graph& g);
+int countMissingEdges(const vector<int>& permutation, Graph& g);
+tuple<int, int> findHamiltonianExtension_exact(Graph& g);
+
+//hamiltonian_extension_approx
+tuple<int, vector<int>> nearestNeighbor(int start, Graph& g);
+int estimateUniqueHamiltonianCycles(int startVertex, int iterations, set<vector<int>>& uniqueHamiltonianCycles, Graph& g);
+tuple<int, int> findHamiltonianExtension_approx(Graph& g);
 
 //utils
 Graph** readGraphsFromFile(const string& filename, int& numGraphs);
@@ -157,6 +191,11 @@ void testFunctions2(int n,
 
 int main(int argc, char* argv[]) {
 
+    if (argc >= 4) {
+        handleOptions(argc, argv);
+        return 0;
+    }
+
     string filename = "dane.txt";
     if (argc > 1) {
         filename = argv[1];
@@ -214,8 +253,166 @@ int main(int argc, char* argv[]) {
         cout << endl;
     }
 
+
+    auto hamiltonianExtension = findHamiltonianExtension_exact(*graphs[0]);
+    auto hamiltonianExtension_approx = findHamiltonianExtension_approx(*graphs[0]);
+    cout << "Hamiltonian extension:" << endl;
+    cout << "Numer of edges to add " << get<0>(hamiltonianExtension) << endl;
+    cout << "Number of hamiltonian cycles " << get<1>(hamiltonianExtension) << endl;
+
+    cout << "Hamiltonian extension approx:" << endl;
+    cout << "Numer of edges to add " << get<0>(hamiltonianExtension_approx) << endl;
+    cout << "Number of hamiltonian cycles " << get<1>(hamiltonianExtension_approx) << endl;
+
+
+
     return 0;
 }
+
+#pragma region console_helpers
+
+int handleOptions(int argc, char* argv[]) {
+    string filename = argv[1];
+    string function = argv[2];
+    int numGraphs;
+
+    Graph** graphs = readGraphsFromFile(filename, numGraphs);
+
+    try {
+        if (function == "metric") {
+            int index1 = std::stoi(argv[3]);
+            int index2 = std::stoi(argv[4]);
+            Graph graph1 = *graphs[index1];
+            Graph graph2 = *graphs[index2];
+            bool approx = false;
+            if (argc == 6 && string(argv[5]) == "approx") {
+                approx = true;
+                cout << "Approx ";
+            }
+            handleMetric(graph1, graph2, approx);
+        }
+        else {
+            int index = std::stoi(argv[3]);
+            Graph graph = *graphs[index];
+
+            if (function == "cycles") {
+
+                bool approx = false;
+                if (argc == 5 && string(argv[4]) == "approx") {
+                    approx = true;
+                    cout << "Approx ";
+                }
+                handleCycles(graph, approx);
+            }
+            else if (function == "hamilton") {
+                bool approx = false;
+                if (argc == 5 && string(argv[4]) == "approx") {
+                    approx = true;
+                    cout << "Approx ";
+                }
+                handleHamilton(graph, approx);
+            }
+            else {
+                std::cerr << "Unknown function: " << function << std::endl;
+                return 1;
+            }
+        }
+
+    }
+    catch (const std::exception& e) {
+        cerr << "Error: " << e.what() << endl;
+        cerr << "Usage:" << endl;
+        cerr << "./app.exe [filename] metric [graph_index1] [graph_index2] [approx]" << endl;
+        cerr << "./app.exe [filename] [function] [graph_index] [approx]" << endl;
+        return 1;
+    }
+
+    return 1;
+}
+
+void handleMetric(Graph& g1, Graph& g2, bool approx) {
+    cout << "Distance between graphs: " << endl;
+    g1.print();
+    cout << "and: " << endl;
+    g2.print();
+    auto start = std::chrono::high_resolution_clock::now();
+
+    int distance = approx ? approximateDistance(g1, g2) : calculateDistance(g1, g2);
+
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end - start;
+    double time = elapsed.count();
+    cout << "Execution time: " << time << " seconds" << endl;
+    cout << "Distance: " << distance << endl;
+}
+
+void handleCycles(Graph& graph, bool approx) {
+    cout << "Max cycles:" << endl;
+
+    auto start = std::chrono::high_resolution_clock::now();
+    pair<int, pair<int, vector<vector<int>>>> approxMaxCycles;
+    pair<int, pair<int, set<vector<int>>>> maxCycles;
+    if (approx) {
+        approxMaxCycles = findLongestCyclesApproximation(graph);
+    }
+    else {
+        maxCycles = findMaxCycle(graph);
+    }
+
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end - start;
+    double time = elapsed.count();
+    cout << "Execution time: " << time << " seconds" << endl;
+
+    if (approx) {
+        int cycleLength = approxMaxCycles.first;
+        int numberOfMaxCycles = approxMaxCycles.second.first;
+        vector<vector<int>> cycles = approxMaxCycles.second.second;
+
+        cout << "Length of longest cycle " << cycleLength << endl;
+        cout << "Number of cycles: " << numberOfMaxCycles << endl;
+        cout << "Cycles: " << endl;
+        for (const auto& cycle : cycles) {
+            for (int node : cycle) {
+                cout << node << " ";
+            }
+            cout << endl;
+        }
+        cout << endl;
+    }
+    else {
+        int cycleLength = maxCycles.first;
+        int numberOfMaxCycles = maxCycles.second.first;
+        set<vector<int>> cycles = maxCycles.second.second;
+
+        cout << "Length of longest cycle " << cycleLength << endl;
+        cout << "Number of cycles: " << numberOfMaxCycles << endl;
+        cout << "Cycles: " << endl;
+        for (const auto& cycle : cycles) {
+            for (int node : cycle) {
+                cout << node << " ";
+            }
+            cout << endl;
+        }
+        cout << endl;
+    }
+}
+
+void handleHamilton(Graph& graph, bool approx) {
+
+    cout << "Hamiltonian extension:" << endl;
+    auto start = std::chrono::high_resolution_clock::now();
+    auto hamiltonianExtension = approx ? findHamiltonianExtension_approx(graph) : findHamiltonianExtension_exact(graph);
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end - start;
+    double time = elapsed.count();
+    cout << "Execution time: " << time << " seconds" << endl;
+    cout << "Numer of edges to add " << get<0>(hamiltonianExtension) << endl;
+    cout << "Number of hamiltonian cycles " << get<1>(hamiltonianExtension) << endl;
+}
+
+#pragma endregion
+
 #pragma region distance
 int calculateDistance(Graph& G1, Graph& G2) {
     int n1 = G1.v;
@@ -476,6 +673,177 @@ vector<int> findPath(int start, int end, const vector<pair<int, int>>& spanningF
 
 #pragma endregion
 
+#pragma region hamiltonian_extension
+bool isHamiltonianCycle(const vector<int>& permutation, Graph& g) {
+    for (int i = 0; i < g.v; ++i) {
+        int from = permutation[i];
+        int to = permutation[(i + 1) % g.v];
+        if (g.adjacencyMatrix[from][to] == 0) {
+            return false;
+        }
+    }
+    return true;
+}
+
+int countMissingEdges(const vector<int>& permutation, Graph& g) {
+    int missingEdges = 0;
+    for (int i = 0; i < g.v; ++i) {
+        int from = permutation[i];
+        int to = permutation[(i + 1) % g.v];
+        if (g.adjacencyMatrix[from][to] == 0) {
+            ++missingEdges;
+        }
+    }
+    return missingEdges;
+}
+
+tuple<int, int> findHamiltonianExtension_exact(Graph& g) {
+    vector<int> permutation(g.v);
+    for (int i = 0; i < g.v; ++i) {
+        permutation[i] = i;
+    }
+
+    int minEdgesToAdd = INT_MAX;
+    vector<int> bestPermutation;
+
+    do {
+        int missingEdges = countMissingEdges(permutation, g);
+        if (missingEdges < minEdgesToAdd) {
+            minEdgesToAdd = missingEdges;
+            bestPermutation = permutation;
+        }
+    } while (std::next_permutation(permutation.begin(), permutation.end()));
+
+    Graph extendedGraph(g.v);
+    for (int i = 0; i < g.v; i++) {
+        for (int j = 0; j < g.v; j++) {
+            extendedGraph.adjacencyMatrix[i][j] = g.adjacencyMatrix[i][j];
+        }
+    }
+
+    for (int i = 0; i < g.v; ++i) {
+        int from = bestPermutation[i];
+        int to = bestPermutation[(i + 1) % extendedGraph.v];
+        extendedGraph.adjacencyMatrix[from][to] = 1;
+    }
+
+    int hamiltonianCycles = 0;
+
+    do {
+        if (isHamiltonianCycle(permutation, extendedGraph)) {
+            ++hamiltonianCycles;
+        }
+    } while (next_permutation(permutation.begin(), permutation.end()));
+
+    hamiltonianCycles /= g.v;
+
+    return std::make_tuple(minEdgesToAdd, hamiltonianCycles);
+}
+#pragma endregion
+
+#pragma region hamiltonian_extension_approx
+tuple<int, vector<int>> nearestNeighbor(int start, Graph& g) {
+    vector<int> path;
+    path.push_back(start);
+
+    vector<bool> visited(g.v, false);
+    visited[start] = true;
+    int current = start;
+    int missingEdges = 0;
+
+    for (int i = 1; i < g.v; ++i) {
+        int next = -1;
+        for (int j = 0; j < g.v; ++j) {
+            if (!visited[j] && (next == -1 || g.adjacencyMatrix[current][j] > g.adjacencyMatrix[current][next])) {
+                next = j;
+            }
+        }
+
+        if (g.adjacencyMatrix[current][next] == 0) {
+            ++missingEdges;
+        }
+
+        visited[next] = true;
+        path.push_back(next);
+        current = next;
+    }
+
+    if (g.adjacencyMatrix[current][start] == 0) {
+        ++missingEdges;
+    }
+
+    return std::make_tuple(missingEdges, path);
+}
+int estimateUniqueHamiltonianCycles(int startVertex, int iterations, set<vector<int>>& uniqueHamiltonianCycles, Graph& g) {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+
+    for (int i = 0; i < iterations; ++i) {
+        vector<int> path;
+        vector<bool> visited(g.v, false);
+        path.push_back(startVertex);
+        visited[startVertex] = true;
+
+        int current = startVertex;
+        for (int j = 1; j < g.v; ++j) {
+            vector<int> candidates;
+            for (int k = 0; k < g.v; ++k) {
+                if (!visited[k] && g.adjacencyMatrix[current][k] == 1) {
+                    candidates.push_back(k);
+                }
+            }
+
+            if (candidates.empty()) break;
+
+            uniform_int_distribution<> dist(0, candidates.size() - 1);
+            int next = candidates[dist(gen)];
+
+            path.push_back(next);
+            visited[next] = true;
+            current = next;
+        }
+
+        if (path.size() == g.v && g.adjacencyMatrix[current][startVertex] == 1) {
+            uniqueHamiltonianCycles.insert(path);
+        }
+    }
+
+    return uniqueHamiltonianCycles.size();
+}
+tuple<int, int> findHamiltonianExtension_approx(Graph& g) {
+    int minMissingEdges = INT_MAX;
+    vector<int> hamiltonianPath;
+
+    for (int start = 0; start < g.v; ++start) {
+        auto result = nearestNeighbor(start, g);
+        int missingEdges = get<0>(result);
+        if (minMissingEdges > missingEdges) {
+            minMissingEdges = missingEdges;
+            hamiltonianPath = get<1>(result);
+        }
+    }
+
+    Graph extendedGraph(g.v);
+    for (int i = 0; i < g.v; i++) {
+        for (int j = 0; j < g.v; j++) {
+            extendedGraph.adjacencyMatrix[i][j] = g.adjacencyMatrix[i][j];
+        }
+    }
+
+    for (int i = 0; i < g.v; ++i) {
+        int from = hamiltonianPath[i];
+        int to = hamiltonianPath[(i + 1) % extendedGraph.v];
+        extendedGraph.adjacencyMatrix[from][to] = 1;
+    }
+
+    set<vector<int>> uniqueCycles;
+    uniqueCycles.insert(hamiltonianPath);
+
+    int cycles = estimateUniqueHamiltonianCycles(hamiltonianPath.front(), g.v * g.v, uniqueCycles, extendedGraph);
+
+    return std::make_tuple(minMissingEdges, cycles);
+}
+#pragma endregion
 
 #pragma region utils
 
@@ -493,7 +861,6 @@ Graph** readGraphsFromFile(const string& filename, int& numGraphs) {
         int v;
         file >> v;
 
-
         graphs[g] = new Graph(v);
 
         for (int i = 0; i < v; i++) {
@@ -501,7 +868,6 @@ Graph** readGraphsFromFile(const string& filename, int& numGraphs) {
                 file >> graphs[g]->adjacencyMatrix[i][j];
             }
         }
-
     }
 
     file.close();
