@@ -557,7 +557,7 @@ void backtrackingMaxCycle(Graph& graph, int currentVertex, int startVertex,
 
     for (int neighbor = 0; neighbor < graph.v; ++neighbor) {
         if (graph.adjacencyMatrix[currentVertex][neighbor] == 1) {
-            if (neighbor == startVertex && cycleLength > 2) {
+            if (neighbor == startVertex && cycleLength >=1) {
                 vector<int> normalizedCycle = normalizeCycle(currentCycle);
                 if (cycleLength > maxCycleLength) {
                     maxCycleLength = cycleLength;
