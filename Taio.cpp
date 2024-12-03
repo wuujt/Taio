@@ -470,7 +470,7 @@ int calculateDistance(Graph& G1, Graph& G2) {
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < n; j++) {
                 if (i < n2 && j < n2) {
-                    transformedMatrix[permutation[i]][j] = extendedG2.adjacencyMatrix[i][j];
+                    transformedMatrix[permutation[i]][permutation[j]] = extendedG2.adjacencyMatrix[i][j];
                 }
             }
         }
@@ -527,7 +527,7 @@ int approximateDistance(Graph& G1, Graph& G2) {
     int differences = 0;
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
-            if (extendedG1.adjacencyMatrix[mapping[i]][j] != extendedG2.adjacencyMatrix[i][j]) {
+            if (extendedG1.adjacencyMatrix[mapping[i]][mapping[j]] != extendedG2.adjacencyMatrix[i][j]) {
                 differences++;
             }
         }
