@@ -227,7 +227,6 @@ int main(int argc, char* argv[]) {
         printUsage();
         return 1;
     }
-    int numGraphs;
 
     // string filename = "dane.txt";
     // if (argc > 1) {
@@ -288,11 +287,6 @@ int main(int argc, char* argv[]) {
     //     cout << endl;
     // }
 
-    auto hamiltonianExtension = findHamiltonianExtension_exact(*graphs[0]);
-    auto hamiltonianExtension_approx = findHamiltonianExtension_approx(*graphs[0]);
-    cout << "Hamiltonian extension:" << endl;
-    cout << "Numer of edges to add " << get<0>(hamiltonianExtension) << endl;
-    cout << "Number of hamiltonian cycles " << get<1>(hamiltonianExtension) << endl;
 
     // auto hamiltonianExtension = findHamiltonianExtension_exact(*graphs[0]);
     // auto hamiltonianExtension_approx = findHamiltonianExtension_approx(*graphs[0]);
